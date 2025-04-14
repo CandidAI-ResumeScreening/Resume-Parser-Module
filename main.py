@@ -15,7 +15,7 @@ predictor = ExperiencePredictor(
 )
 
 # Example usage
-file_path = "Test_Samples\Yunus-Resume.pdf"
+file_path = "Test_Samples\cv (1).pdf"
 extractor = ResumeTextExtractor(file_path)
 text = extractor.extract()
 
