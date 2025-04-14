@@ -15,7 +15,8 @@ def load_skills(skills_csv_path: str) -> List[str]:
         "critical thinking", "time management", "collaboration", "problem solving", "attention to detail",
 
         # Office Tools
-        "excel", "powerpoint", "word", "outlook", "notion", "trello", "slack", "asana", "miro", "google docs", "confluence", "figma", "canva",
+        "excel", "powerpoint", "word", "outlook", "notion", "trello", "slack", "asana", "miro", "google docs", "confluence", "figma", "canva", "MS-Office", 
+        "MS-Word", "MS-PowerPoint", "MS-Excel"
 
         # Design & Media
         "photoshop", "illustrator", "after effects", "premiere pro", "lightroom",
