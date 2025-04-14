@@ -5,6 +5,7 @@ from modules.skills_extractor import load_skills, extract_skills_from_text
 from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails, extract_phone_number
 from modules.experience_predictor import ExperiencePredictor
+from modules.language_extractor import LanguageExtractor
 from pprint import pprint
 
 # Initialize predictor with paths to your saved files
@@ -48,7 +49,8 @@ candidate_details = {
     "Job role": designation,
     "Experience level": exp_lvl,
     "Education info": education_details,
-    "Skills": matched_skills
+    "Skills": matched_skills,
+    "languages spoken": ""
 }
 print("-----------the Raw Candidate details extracted--------------------")
 print(candidate_details)
