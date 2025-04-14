@@ -1,6 +1,14 @@
 # preprocessing.py
 import re
 import string
+import re
+import string
+import nltk
+from nltk.corpus import stopwords
+from sklearn.preprocessing import LabelEncoder
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
 
 def clean_resume(resume_text):
     """
@@ -26,4 +34,14 @@ def clean_resume(resume_text):
     resume_text = resume_text.lower()
     # Remove stop words (we'll let TF-IDF handle this)
     return resume_text
+
+
+# Function to clean text
+def clean_resume_for_exp(text):
+    text = text.lower()
+    text = re.sub(r'https?://\S+', '', text)  # remove URLs
+    text = re.sub(r'\d+', '', text)  # remove numbers
+    text = text.translate(str.maketrans('', '', string.punctuation))  # remove punctuation
+    text = ' '.join([word for word in text.split() if word not in stop_words])  # remove stopwords
+    return text
 
