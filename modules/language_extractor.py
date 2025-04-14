@@ -20,7 +20,7 @@ class LanguageExtractor:
         self.matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
         patterns = [nlp.make_doc(lang) for lang in self.languages]
         self.matcher.add("LANGUAGE", patterns)
-        print(f"[✔] Loaded {len(self.languages)} unique languages.")
+        # print(f"[✔] Loaded {len(self.languages)} unique languages.")
 
     def extract_languages(self, text: str) -> List[str]:
         doc = nlp(text)

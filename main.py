@@ -6,7 +6,10 @@ from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails, extract_phone_number
 from modules.experience_predictor import ExperiencePredictor
 from modules.language_extractor import LanguageExtractor
-from pprint import pprint
+
+# Initialize once with your Excel file
+extractor_language = LanguageExtractor("utils\data\languages_Database.xlsx", column_name="Language")
+
 
 # Initialize predictor with paths to your saved files
 predictor = ExperiencePredictor(
@@ -16,7 +19,7 @@ predictor = ExperiencePredictor(
 )
 
 # Example usage
-file_path = "Test_Samples\cv (97).pdf"
+file_path = "Test_Samples\Yunus-Resume.pdf"
 extractor = ResumeTextExtractor(file_path)
 text = extractor.extract()
 
@@ -42,6 +45,7 @@ designation = job_role.predict_role(text)
 exp_lvl =  predictor.predict_experience(text)
 education_details = extractor.extract_education_details(text)
 matched_skills = extract_skills_from_text(text, skills_list)
+language_spoken = extractor_language.extract_languages(text)
 
 candidate_details = {
     "Email": emails,
@@ -50,20 +54,25 @@ candidate_details = {
     "Experience level": exp_lvl,
     "Education info": education_details,
     "Skills": matched_skills,
-    "languages spoken": ""
+    "languages spoken": language_spoken
 }
 print("-----------the Raw Candidate details extracted--------------------")
 print(candidate_details)
 
 print("-------------------------More readable format----------------------")
-print("\n📄 Candidate Details:")
+print("📄 Candidate Details:")
 print("----------------------------")
 for key, value in candidate_details.items():
-    # Join lists nicely if value is a list
-    if isinstance(value, list):
+    if key == "Education info" and isinstance(value, dict):
+        print(f"{key}:")
+        for sub_key, sub_value in value.items():
+            formatted = ", ".join(sorted(sub_value)) if sub_value else "N/A"
+            print(f"   • {sub_key}: {formatted}")
+    elif isinstance(value, list):
         print(f"{key}: {', '.join(value) if value else 'N/A'}")
     else:
         print(f"{key}: {value if value else 'N/A'}")
+
 
 
 
