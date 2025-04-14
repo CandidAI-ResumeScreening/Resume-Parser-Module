@@ -1,0 +1,33 @@
+JOHN DOE
+Software Engineer
+john.doe@email.com | (123) 456-7890 | San Francisco, CA
+
+SUMMARY
+Passionate software engineer with 5+ years of experience in Python and cloud technologies. Strong problem-solving skills.
+
+EDUCATION
+Stanford University | Stanford, CA
+Master of Science in Computer Science
+GPA: 3.8/4.0 | 2018 - 2020
+
+University of California | Berkeley, CA
+Bachelor of Science in Electrical Engineering
+GPA: 3.6/4.0 | 2014 - 2018
+
+EXPERIENCE
+Google | Mountain View, CA
+Senior Software Engineer
+June 2020 - Present
+- Led a team to develop a scalable microservice architecture
+- Improved API response times by 40%
+
+Microsoft | Redmond, WA
+Software Engineer Intern
+Summer 2019
+- Built a CI/CD pipeline for internal tools
+- Automated testing for 50+ services
+
+SKILLS
+Programming: Python, Java, C++
+Frameworks: Django, React, TensorFlow
+Tools: Docker, AWS, Git
