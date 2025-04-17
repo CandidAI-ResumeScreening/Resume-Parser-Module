@@ -6,31 +6,36 @@ from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails, extract_phone_number
 from modules.experience_predictor import ExperiencePredictor
 from modules.language_extractor import LanguageExtractor
+from pathlib import Path
 
 # Initialize once with your Excel file
 extractor_language = LanguageExtractor("utils\data\languages_Database.xlsx", column_name="Language")
 
 
 # Initialize predictor with paths to your saved files
+
 predictor = ExperiencePredictor(
-    model_path='final_experience_model (1).pkl',
-    vectorizer_path='experience_vectorizer (1).pkl',
-    label_encoder_path='experience_label_encoder (1).pkl'
+    model_path=str(Path('models') / 'final_experience_model (1).pkl'),
+    vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
+    label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
 )
 
+
 # Example usage
-file_path = "Test_Samples\Engineering_Industrial_Tech_resume.docx"
+file_path = "Test_Samples\Yunus-Resume.pdf"
 extractor = ResumeTextExtractor(file_path)
 text = extractor.extract()
 
 
-file_path = "modules\Education_DB_0.xlsx"
+file_path = "utils\data\Education_DB_0.xlsx"
 extractor = EducationExtractor(file_path)  # Automatically loads education_dataset.xlsx
-model_path = "model_exp1.pkl"
-job_role = ExperienceClassifier(model_path, "tfidf_exp1.pkl", "encoder_exp1.pkl")
-
+job_role = ExperienceClassifier(
+    str(Path("models") / "model_exp1.pkl"),
+    str(Path("models") / "tfidf_exp1.pkl"),
+    str(Path("models") / "encoder_exp1.pkl")
+)
 # Load skills once
-skills_list = load_skills('skills_database.csv')  # Adjust path as per your project
+skills_list = load_skills('utils\data\skills_database.csv')  # Adjust path as per your project
 
 # Extract skills from a resume
 
@@ -38,7 +43,7 @@ skills_list = load_skills('skills_database.csv')  # Adjust path as per your proj
 # print("Matched skills:", matched_skills)
 
 
-print(text)
+# print(text)
 emails = extract_all_emails(text)
 phone = extract_phone_number(text)
 designation = job_role.predict_role(text)
