@@ -7,6 +7,7 @@ from pdfminer.high_level import extract_text
 import mammoth
 from PIL import Image
 import pytesseract
+from docx import Document  # <-- Needed for extracting headers
 
 
 class ResumeTextExtractor:
@@ -65,10 +66,34 @@ class ResumeTextExtractor:
             return extract_text(self.file_path)
 
     def _extract_from_docx(self) -> str:
-        """Extract text from .docx file."""
+        """Extract text from .docx file, including headers if present."""
+        full_text = ""
+
+        # Extract body content with Mammoth
         with open(self.file_path, "rb") as docx_file:
             result = mammoth.extract_raw_text(docx_file)
-            return result.value
+            full_text = result.value
+
+        # Try to include headers using python-docx
+        try:
+            doc = Document(self.file_path)
+            headers_text = []
+
+            for section in doc.sections:
+                for header in [section.header, section.first_page_header, section.even_page_header]:
+                    if header:
+                        for para in header.paragraphs:
+                            text = para.text.strip()
+                            if text:
+                                headers_text.append(text)
+
+            if headers_text:
+                full_text = "\n".join(headers_text) + "\n" + full_text
+
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to extract headers from {self.file_path} - {str(e)}")
+
+        return full_text
 
     def _extract_from_txt(self) -> str:
         """Extract and clean text from .txt file."""
