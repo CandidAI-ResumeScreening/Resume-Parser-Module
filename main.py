@@ -38,7 +38,7 @@ skills_list = load_skills('skills_database.csv')  # Adjust path as per your proj
 # print("Matched skills:", matched_skills)
 
 
-# print(results)
+print(text)
 emails = extract_all_emails(text)
 phone = extract_phone_number(text)
 designation = job_role.predict_role(text)

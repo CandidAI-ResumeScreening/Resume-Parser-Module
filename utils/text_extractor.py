@@ -94,6 +94,57 @@ class ResumeTextExtractor:
             print(f"⚠️ Warning: Failed to extract headers from {self.file_path} - {str(e)}")
 
         return full_text
+    
+    def _extract_from_docx_new(self) -> str:
+        """Extract text from .docx file, including headers, footers, and tables if present."""
+        # Default: extract main content using Mammoth
+
+    
+        with open(self.file_path, "rb") as docx_file:
+            result = mammoth.extract_raw_text(docx_file)
+            mammoth_text = result.value.strip()
+
+        try:
+            doc = Document(self.file_path)
+            headers_text, footers_text, tables_text = [], [], []
+
+            # Collect headers
+            for section in doc.sections:
+                for header in [section.header, section.first_page_header, section.even_page_header]:
+                    if header:
+                        for para in header.paragraphs:
+                            text = para.text.strip()
+                            if text:
+                                headers_text.append(text)
+
+            # Collect footers
+            for section in doc.sections:
+                for footer in [section.footer, section.first_page_footer, section.even_page_footer]:
+                    if footer:
+                        for para in footer.paragraphs:
+                            text = para.text.strip()
+                            if text:
+                                footers_text.append(text)
+
+            # Collect table contents
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if row_text:
+                        tables_text.append(" | ".join(row_text))
+
+            # If no extra content, just return Mammoth output
+            if not (headers_text or footers_text or tables_text):
+                return mammoth_text
+
+            # Combine everything
+            combined_parts = headers_text + [mammoth_text] + tables_text + footers_text
+            return "\n\n".join(combined_parts).strip()
+
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to extract headers/footers/tables from {self.file_path} - {str(e)}")
+            return mammoth_text
+
 
     def _extract_from_txt(self) -> str:
         """Extract and clean text from .txt file."""
