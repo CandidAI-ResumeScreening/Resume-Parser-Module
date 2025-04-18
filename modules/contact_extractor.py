@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 
-# Cell 2: Updated extract_first_phone_number with newline stripping
+# Updated extract_first_phone_number with newline stripping
 def extract_first_phone_number(text: str) -> Optional[str]:
     """
     Extract the first valid phone number from the input text,
