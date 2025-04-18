@@ -109,3 +109,31 @@ def extract_all_emails(text: str) -> Optional[str]:
     unique_emails = list(dict.fromkeys([email.strip() for email in matches]))
 
     return ", ".join(unique_emails) if unique_emails else None
+
+
+def extract_all_emails_new(text: str) -> Optional[str]:
+    if not text or not isinstance(text, str):
+        return None
+
+    lower_text = text.lower()
+    stop_index = min(
+        (lower_text.find(k) for k in ['references', 'referees'] if k in lower_text),
+        default=len(text)
+    )
+    relevant_text = text[:stop_index]
+
+    email_pattern = re.compile(
+        r'''
+        (?<![\w.-])
+        [a-zA-Z0-9._%+-]+
+        @
+        (?:[a-zA-Z0-9-]+\.)+
+        [a-zA-Z]{2,}
+        (?![\w.-])
+        ''', re.VERBOSE
+    )
+
+    matches = email_pattern.findall(relevant_text)
+    unique_emails = list(dict.fromkeys(email.strip() for email in matches))
+    return ", ".join(unique_emails) if unique_emails else None
+
