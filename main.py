@@ -3,7 +3,7 @@ from modules.education_extractor import EducationExtractor
 from modules.job_role_classifier import JobRoleClassifier
 from modules.skills_extractor import load_skills, extract_skills_from_text
 from utils.cleaner import Cleaner
-from modules.contact_extractor import extract_all_emails_new, extract_phone_number
+from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
 from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.language_extractor import LanguageExtractor
 from pathlib import Path
@@ -45,7 +45,7 @@ skills_list = load_skills('utils\data\skills_database.csv')  # Adjust path as pe
 
 # print(text)
 emails = extract_all_emails_new(text)
-phone = extract_phone_number(text)
+phone = extract_first_phone_number(text)
 designation = job_role.predict_role(text)
 exp_lvl =  predictor.predict_experience(text)
 education_details = extractor.extract_education_details(text)

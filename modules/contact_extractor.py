@@ -1,6 +1,59 @@
 import re
 from typing import Optional
 
+
+# Cell 2: Updated extract_first_phone_number with newline stripping
+def extract_first_phone_number(text: str) -> Optional[str]:
+    """
+    Extract the first valid phone number from the input text,
+    stopping before any 'Reference', 'References', or 'Referees' section.
+    Strips off anything from a newline onwards.
+    """
+    # Determine cutoff before reference section
+    pattern_ref = re.compile(r'\b(referees|references|reference)\b', re.IGNORECASE)
+    match_ref = pattern_ref.search(text)
+    relevant_text = text[:match_ref.start()] if match_ref else text
+
+    # Phone number pattern: starts with +, ( or digit, followed by digits/spaces/dashes/parentheses
+    phone_pattern = re.compile(
+        r'(?<!\d)'             # No digit before
+        r'((?:\+|\()?\d'       # Starts with + or ( then digit
+        r'[\d\-\s\(\)]{6,17})' # 6–17 more allowed chars
+        r'(?!\d)'              # No digit after
+    )
+
+    for match in phone_pattern.finditer(relevant_text):
+        raw = match.group(1)
+
+        # Cut off at first newline, then strip surrounding whitespace
+        s = raw.splitlines()[0].strip()
+
+        # Check digit count between 7 and 18
+        digits_only = re.sub(r'\D', '', s)
+        if not (7 <= len(digits_only) <= 18):
+            continue
+
+        # If starts with '(', ensure closing ')' at pos 2,3, or 4
+        if s.startswith('('):
+            idx = s.find(')')
+            if idx not in {2, 3, 4}:
+                continue
+
+        # No more than two consecutive spaces
+        if '   ' in s:
+            continue
+
+        # Reject if any group of digits is a 4-digit year 1960–2025
+        parts = re.split(r'[ \-]', s)
+        if any(len(re.sub(r'\D', '', part)) == 4 and 1960 <= int(re.sub(r'\D', '', part)) <= 2025
+               for part in parts):
+            continue
+
+        # Return first valid number
+        return s
+
+    return None
+
 def extract_phone_number(text: str) -> Optional[str]:
     # Only consider text before 'References' or 'Referees' (any case)
     lower_text = text.lower()
