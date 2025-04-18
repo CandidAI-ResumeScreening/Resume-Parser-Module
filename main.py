@@ -1,10 +1,10 @@
 from utils.text_extractor import ResumeTextExtractor
 from modules.education_extractor import EducationExtractor
-from modules.experience_classifier import ExperienceClassifier
+from modules.job_role_classifier import JobRoleClassifier
 from modules.skills_extractor import load_skills, extract_skills_from_text
 from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_phone_number
-from modules.experience_predictor import ExperiencePredictor
+from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.language_extractor import LanguageExtractor
 from pathlib import Path
 
@@ -14,7 +14,7 @@ extractor_language = LanguageExtractor("utils\data\languages_Database.xlsx", col
 
 # Initialize predictor with paths to your saved files
 
-predictor = ExperiencePredictor(
+predictor = ExperienceLevelClassifier(
     model_path=str(Path('models') / 'final_experience_model (1).pkl'),
     vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
     label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
@@ -22,14 +22,14 @@ predictor = ExperiencePredictor(
 
 
 # Example usage
-file_path = "Test_Samples\Yunus-Resume.pdf"
+file_path = "Test_Samples\Yusin-Resume.pdf"
 extractor = ResumeTextExtractor(file_path)
 text = extractor.extract()
 
 
 file_path = "utils\data\Education_DB_0.xlsx"
 extractor = EducationExtractor(file_path)  # Automatically loads education_dataset.xlsx
-job_role = ExperienceClassifier(
+job_role = JobRoleClassifier(
     str(Path("models") / "model_exp1.pkl"),
     str(Path("models") / "tfidf_exp1.pkl"),
     str(Path("models") / "encoder_exp1.pkl")

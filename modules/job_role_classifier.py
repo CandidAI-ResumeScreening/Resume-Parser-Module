@@ -2,7 +2,7 @@ import joblib
 import numpy as np
 from utils.preprocessor import clean_resume  # ✅ local clean_resume
 
-class ExperienceClassifier:
+class JobRoleClassifier:
     def __init__(self, model_path, tfidf_path, label_encoder_path):
     
         model = joblib.load(model_path)

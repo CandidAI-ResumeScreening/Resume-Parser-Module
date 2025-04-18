@@ -11,7 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 # Download stopwords if not already done
 nltk.download('stopwords')
 
-class ExperiencePredictor:
+class ExperienceLevelClassifier:
     def __init__(self, model_path, vectorizer_path, label_encoder_path):
         self.model = joblib.load(model_path)
         self.vectorizer = joblib.load(vectorizer_path)
