@@ -160,3 +160,22 @@ class ResumeTextExtractor:
             return pytesseract.image_to_string(img)
         except Exception as e:
             return f"Error extracting text from image {self.file_path}: {e}"
+        
+    
+
+    def clean_cv_text(self, text: str) -> str:
+        """
+        Given raw extracted CV text, collapse multiple blank lines into one
+        and remove any trailing blank lines at the end.
+        """
+        # Normalize line endings
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        
+        # 1) Collapse runs of 2 or more blank lines into exactly one: "\n\n"
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        
+        # 2) Strip any leading/trailing whitespace and blank lines
+        text = text.strip('\n')
+        
+        return text
+
