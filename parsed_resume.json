@@ -1,0 +1,54 @@
+{
+  "Name": "Yusin Ali Adan",
+  "Job Role": "Software Engineer Intern",
+  "Social Media": [
+    "https://github.com",
+    "https://linkedin.com"
+  ],
+  "Education Details": [
+    {
+      "education level": "Bachelor's Degree",
+      "field of study": "Computer Science",
+      "institution": "Jomo Kenyatta University of Agriculture and Technology",
+      "grade level": "n/a",
+      "date completed": "December 2025"
+    }
+  ],
+  "Experience Level": "Entry",
+  "Total Estimated Years of Experience": "1",
+  "Experience Details": [
+    {
+      "Industry": "Technology",
+      "Roles": "Software Engineer Intern"
+    },
+    {
+      "Industry": "Technology",
+      "Roles": "Freelance Developer"
+    }
+  ],
+  "Skills": [
+    "C++",
+    "C",
+    "Python",
+    "Java",
+    "JavaScript",
+    "Go",
+    "SQL",
+    "React.js",
+    "Node.js",
+    "Next.js",
+    "Tailwind CSS",
+    "Git",
+    "Linux",
+    "Docker",
+    "Azure",
+    "AWS",
+    "MySQL",
+    "PostgreSQL"
+  ],
+  "Certification": [
+    "n/a"
+  ],
+  "Email": "yunisaden3@gmail.com",
+  "Phone": "0798654423"
+}
