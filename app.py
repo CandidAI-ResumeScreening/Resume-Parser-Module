@@ -2,6 +2,7 @@ from utils.text_extractor import ResumeTextExtractor
 from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
 from modules.experience_level_classifier import ExperienceLevelClassifier
+from modules.job_role_classifier import JobRoleClassifier
 import os
 from openai import AzureOpenAI
 from pathlib import Path
@@ -28,12 +29,21 @@ cv_text = Cleaner(cv_text).remove_empty_lines(cv_text)
 
 emails = extract_all_emails_new(cv_text)
 phone = extract_first_phone_number(cv_text)
+
 predictor = ExperienceLevelClassifier(
     model_path=str(Path('models') / 'final_experience_model (1).pkl'),
     vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
     label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
 )
 exp_lvl =  predictor.predict_experience(cv_text)
+
+# Initialize your job role classifier model
+job_role = JobRoleClassifier(
+    str(Path("models") / "model_exp1.pkl"),
+    str(Path("models") / "tfidf_exp1.pkl"),
+    str(Path("models") / "encoder_exp1.pkl")
+)
+
 
 
 # Initialize Azure OpenAI client
@@ -57,9 +67,15 @@ def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
     - Social Media (LinkedIn, GitHub, Portfolio, Medium - only return valid URLs or account username if specified)
     - Education Details (list of dictionaries with: education level, field of study, institution, grade level, date completed)
     - Total Estimated Years of Experience (calculate from dates specified under experience section or return "Not specified")
-    - Experience Details (list of dictionaries with: Industry Name(this is the name of the Company/institution) and Roles)
+    - Experience Details (list of dictionaries with each dictionary containing: Industry Name(this is the name of the Company/institution) and Roles)
     - Skills (both technical and non-technical)
     - Certifications/Professional Qualifications/awards  (as list)
+
+    **Normalization Guidelines:**
+    - Expand abbreviations and acronyms to their full forms (e.g., "B.Tech" → "Bachelor of Technology", "B.Sc" → "Bachelor of Science", "ML" → "Machine Learning", "CS" → "Computer Science", "CT" → "Computer Technology").
+    - Normalize technical terms and skills to their most commonly known names (e.g., "Python3" → "Python", "JS" → "JavaScript").
+    - Ensure consistent naming for education levels, skills, certifications, and job titles.
+    - For any missing or unspecified information, use "n/a" as the value.
 
     For any missing information, use "n/a" as the value.
 
@@ -126,6 +142,10 @@ def process_resume(resume_text: str) -> Dict:
     parsed_data["Email"] = emails
     parsed_data["Phone"] = phone
     parsed_data["Experience level"] = exp_lvl
+    # Fallback for missing Job Role
+    if parsed_data.get("Job Role", "").strip().lower() == "n/a":
+        predicted_role = job_role.predict_role(text)
+        parsed_data["Job Role"] = predicted_role
     
     return parsed_data
 
@@ -137,5 +157,5 @@ if __name__ == "__main__":
     print(json.dumps(result, indent=2))
     
     # Save to file
-    with open('parsed_resume_for_cv_97.json', 'w') as f:
+    with open('refined_parsed_resume_for_cv_97.json', 'w') as f:
         json.dump(result, f, indent=2)
