@@ -1,27 +1,28 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string, redirect
 from utils.text_extractor import ResumeTextExtractor
 from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
 from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.job_role_classifier import JobRoleClassifier
+from app import parse_resume_with_ai
 from pathlib import Path
 import os
 from openai import AzureOpenAI
 import json
-from werkzeug.utils import secure_filename
 import tempfile
-from typing import Dict, List, Union
+from dotenv import load_dotenv
+import imghdr  # For image type validation
 
+load_dotenv()
 
 app = Flask(__name__)
 
-# Load environment variables
+# Initialize components
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
 api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 
-# Initialize models (do this once when starting the API)
 predictor = ExperienceLevelClassifier(
     model_path=str(Path('models') / 'final_experience_model (1).pkl'),
     vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
@@ -40,80 +41,45 @@ client = AzureOpenAI(
     api_key=subscription_key,
 )
 
-def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
-    """Use Azure OpenAI to extract structured resume information"""
-    prompt = f"""
-    Analyze the following resume text and extract the specified information in EXACTLY the JSON format provided below.
-    Return ONLY valid JSON output with no additional text or explanation.
+# Supported file extensions
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt', 'jpg', 'jpeg', 'png'}
 
-    Required fields:
-    - Name (full name)
-    - Job Role/Designation (current or most recent)
-    - Social Media (LinkedIn, GitHub, Portfolio, Medium - only return valid URLs or account username if specified)
-    - Education Details (list of dictionaries with: education level, field of study, institution, grade level, date completed)
-    - Total Estimated Years of Experience (calculate from dates specified under experience section or return "Not specified")
-    - Experience Details (list of dictionaries with each dictionary containing: Industry Name(this is the name of the Company/institution) and Roles)
-    - Skills (both technical and non-technical)
-    - Certifications/Professional Qualifications/awards  (as list)
+def allowed_file(filename):
+    """Check if the file has an allowed extension"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    **Normalization Guidelines:**
-    - Expand abbreviations and acronyms to their full forms (e.g., "B.Tech" → "Bachelor of Technology", "B.Sc" → "Bachelor of Science", "ML" → "Machine Learning", "CS" → "Computer Science", "CT" → "Computer Technology").
-    - Normalize technical terms and skills to their most commonly known names (e.g., "Python3" → "Python", "JS" → "JavaScript").
-    - Ensure consistent naming for education levels, skills, certifications, and job titles.
-    - For any missing or unspecified information, use "n/a" as the value.
+def validate_image(file_stream):
+    """Validate that the uploaded file is actually an image"""
+    header = file_stream.read(32)  # Read first 32 bytes to determine file type
+    file_stream.seek(0)  # Reset file pointer
+    return imghdr.what(None, header)
 
-    For any missing information, use "n/a" as the value.
+@app.route('/')
+def home():
+    return redirect('/test')
 
-    Resume Text:
-    {resume_text}  # Truncate to avoid token limits
-
-    Required JSON Output Format:
-    {{
-        "Name": "string",
-        "Job Role": "string",
-        "Social Media": ["url1", "url2"],
-        "Education Details": [
-            {{
-                "education level": "string",
-                "field of study": "string",
-                "institution": "string",
-                "grade level": "string",
-                "date completed": "string"
-            }}
-        ],
-        "Total Estimated Years of Experience": "float or string(if not specified)",
-        "Experience Details": [
-            {{
-                "Industry Name": "string",
-                "Roles": "string"
-            }}
-        ],
-        "Skills": ["skill1", "skill2"],
-        "Certification": ["cert1", "cert2"]
-    }}
-    """
-    
-    response = client.chat.completions.create(
-        
-        messages=[
-            {"role": "system", "content": "You are an expert resume parser that extracts structured information from resumes. Return ONLY valid JSON."},
-            {"role": "user", "content": prompt}
-        ],
-        
-        max_tokens=4096,
-        temperature=0.1,  # Lower temperature for more consistent results
-        top_p=1,
-        model=deployment,
-        response_format={"type": "json_object"}  # Ensure JSON output
-    )
-    
-    try:
-        # Extract the JSON content from the response
-        json_str = response.choices[0].message.content
-        return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse JSON: {e}")
-        return {"error": "Failed to parse resume"}
+@app.route('/test', methods=['GET'])
+def test_form():
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Resume Parser</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            pre { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <h1>Upload Resume</h1>
+        <form action="/parse" method="post" enctype="multipart/form-data">
+            <input type="file" name="resume" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png" required>
+            <button type="submit">Parse Resume</button>
+        </form>
+    </body>
+    </html>
+    '''
 
 @app.route('/parse', methods=['POST'])
 def parse_resume():
@@ -122,51 +88,55 @@ def parse_resume():
     
     file = request.files['resume']
     if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        return jsonify({"error": "No file selected"}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Unsupported file type"}), 400
+    
+    # Additional validation for image files
+    if file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        image_type = validate_image(file.stream)
+        if image_type not in ('jpeg', 'png'):
+            return jsonify({"error": "Invalid image file"}), 400
     
     try:
-        # Save the uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            file.save(temp_file.name)
-            temp_path = temp_file.name
-        
-        # Extract text
-        extractor = ResumeTextExtractor(temp_path)
+        # Save the uploaded file temporarily with appropriate extension
+        file_ext = file.filename.rsplit('.', 1)[1].lower()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_ext}') as tmp_file:
+            file.save(tmp_file.name)
+            file_path = tmp_file.name
+
+        # Process the file
+        extractor = ResumeTextExtractor(file_path)
         cv_text = extractor.extract()
         cv_text = Cleaner(cv_text).remove_empty_lines(cv_text)
         
-        # Extract contact info
         emails = extract_all_emails_new(cv_text)
         phone = extract_first_phone_number(cv_text)
-        
-        # Predict experience level
         exp_lvl = predictor.predict_experience(cv_text)
         
-        # Parse with AI
         parsed_data = parse_resume_with_ai(cv_text)
-        
-        # Add contact info and experience level
         parsed_data["Email"] = emails
         parsed_data["Phone"] = phone
         parsed_data["Experience level"] = exp_lvl
-        parsed_data["Raw Resume Text"] = cv_text
+        parsed_data["rawResumeText"] = cv_text
         
-        # Fallback for missing Job Role
         if parsed_data.get("Job Role", "").strip().lower() == "n/a":
             predicted_role = job_role.predict_role(cv_text)
             parsed_data["Job Role"] = predicted_role
-        
+
         return jsonify(parsed_data)
-    
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Error processing resume: {str(e)}"}), 500
     finally:
-        # Clean up temporary file
-        if 'temp_path' in locals():
+        if 'file_path' in locals():
             try:
-                os.unlink(temp_path)
+                os.unlink(file_path)
             except:
                 pass
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
