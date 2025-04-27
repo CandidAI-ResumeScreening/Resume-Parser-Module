@@ -7,7 +7,7 @@ import os
 from openai import AzureOpenAI
 from pathlib import Path
 import json
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 from dotenv import load_dotenv
 
 
@@ -22,27 +22,27 @@ subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
 api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 
 
-file_path = "Test_Samples\cv (97).pdf"
-extractor = ResumeTextExtractor(file_path)
-cv_text = extractor.extract()
-cv_text = Cleaner(cv_text).remove_empty_lines(cv_text)
+# file_path = "Test_Samples\cv (97).pdf"
+# extractor = ResumeTextExtractor(file_path)
+# cv_text = extractor.extract()
+# cv_text = Cleaner(cv_text).remove_empty_lines(cv_text)
 
-emails = extract_all_emails_new(cv_text)
-phone = extract_first_phone_number(cv_text)
+# emails = extract_all_emails_new(cv_text)
+# phone = extract_first_phone_number(cv_text)
 
-predictor = ExperienceLevelClassifier(
-    model_path=str(Path('models') / 'final_experience_model (1).pkl'),
-    vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
-    label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
-)
-exp_lvl =  predictor.predict_experience(cv_text)
+# predictor = ExperienceLevelClassifier(
+#     model_path=str(Path('models') / 'final_experience_model (1).pkl'),
+#     vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
+#     label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
+# )
+# exp_lvl =  predictor.predict_experience(cv_text)
 
-# Initialize your job role classifier model
-job_role = JobRoleClassifier(
-    str(Path("models") / "model_exp1.pkl"),
-    str(Path("models") / "tfidf_exp1.pkl"),
-    str(Path("models") / "encoder_exp1.pkl")
-)
+# # Initialize your job role classifier model
+# job_role = JobRoleClassifier(
+#     str(Path("models") / "model_exp1.pkl"),
+#     str(Path("models") / "tfidf_exp1.pkl"),
+#     str(Path("models") / "encoder_exp1.pkl")
+# )
 
 
 
@@ -138,19 +138,20 @@ def process_resume(resume_text: str) -> Dict:
     # Parse with AI
     parsed_data = parse_resume_with_ai(text)
     
-    # Add contact info 
-    parsed_data["Email"] = emails
-    parsed_data["Phone"] = phone
-    parsed_data["Experience level"] = exp_lvl
-    # Fallback for missing Job Role
-    if parsed_data.get("Job Role", "").strip().lower() == "n/a":
-        predicted_role = job_role.predict_role(text)
-        parsed_data["Job Role"] = predicted_role
+    # # Add contact info 
+    # parsed_data["Email"] = emails
+    # parsed_data["Phone"] = phone
+    # parsed_data["Experience level"] = exp_lvl
+    # # Fallback for missing Job Role
+    # if parsed_data.get("Job Role", "").strip().lower() == "n/a":
+    #     predicted_role = job_role.predict_role(text)
+    #     parsed_data["Job Role"] = predicted_role
     
     return parsed_data
 
 if __name__ == "__main__":
     # Example usage
+    cv_text = "cv_text"
     result = process_resume(cv_text)
     
     print("Extracted Resume Data:")

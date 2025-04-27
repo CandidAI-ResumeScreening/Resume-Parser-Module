@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template_string, redirect
+from flask_cors import CORS
 from utils.text_extractor import ResumeTextExtractor
 from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
@@ -11,11 +12,12 @@ from openai import AzureOpenAI
 import json
 import tempfile
 from dotenv import load_dotenv
-import imghdr  # For image type validation
+# import imghdr  # For image type validation
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)  # This allows all domains. You can restrict later if needed.
 
 # Initialize components
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -49,11 +51,11 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def validate_image(file_stream):
-    """Validate that the uploaded file is actually an image"""
-    header = file_stream.read(32)  # Read first 32 bytes to determine file type
-    file_stream.seek(0)  # Reset file pointer
-    return imghdr.what(None, header)
+# def validate_image(file_stream):
+#     """Validate that the uploaded file is actually an image"""
+#     header = file_stream.read(32)  # Read first 32 bytes to determine file type
+#     file_stream.seek(0)  # Reset file pointer
+#     return imghdr.what(None, header)
 
 @app.route('/')
 def home():
@@ -94,10 +96,10 @@ def parse_resume():
         return jsonify({"error": "Unsupported file type"}), 400
     
     # Additional validation for image files
-    if file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
-        image_type = validate_image(file.stream)
-        if image_type not in ('jpeg', 'png'):
-            return jsonify({"error": "Invalid image file"}), 400
+    # if file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        
+    #     if image_type not in ('jpeg', 'png', 'jpg'):
+    #         return jsonify({"error": "Invalid image file"}), 400
     
     try:
         # Save the uploaded file temporarily with appropriate extension
