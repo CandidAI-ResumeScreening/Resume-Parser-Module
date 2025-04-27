@@ -30,7 +30,7 @@ def extract_first_phone_number(text: str) -> Optional[str]:
 
         # Check digit count between 7 and 18
         digits_only = re.sub(r'\D', '', s)
-        if not (7 <= len(digits_only) <= 18):
+        if not (8 <= len(digits_only) <= 18):
             continue
 
         # If starts with '(', ensure closing ')' at pos 2,3, or 4
