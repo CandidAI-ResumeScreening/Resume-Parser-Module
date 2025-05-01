@@ -12,6 +12,6 @@ __pycache__/
 *.pyd
 
 # Model files
-model/
-resume_skills_done_ner_model/
-**/resume_skills_ner_model/
+models/
+resume_skills_ner_model_v2
+**/resume_skills_ner_model_v2
