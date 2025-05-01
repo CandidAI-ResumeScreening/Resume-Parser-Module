@@ -1,1 +1,17 @@
 .env
+# Python virtual environment
+venv/
+spacyenv/
+__pycache__/
+*.pyc
+
+# Large PyTorch files
+*.dll
+*.lib
+*.so
+*.pyd
+
+# Model files
+model/
+resume_skills_done_ner_model/
+**/resume_skills_ner_model/
