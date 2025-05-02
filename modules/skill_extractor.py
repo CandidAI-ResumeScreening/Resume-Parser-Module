@@ -1,34 +1,56 @@
 import os
 import torch
 import pickle
+import requests
+from io import BytesIO
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
 class SkillExtractor:
-    def __init__(self, model_dir):
+    def __init__(self, model_name_or_path):
         """
         Initialize the skill extractor.
-        
+
         Args:
-            model_dir (str): Path to the directory containing the trained model
+            model_name_or_path (str): HuggingFace model name/path or local directory
         """
         try:
-            self.model = AutoModelForTokenClassification.from_pretrained(model_dir)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
+            # Load the model and tokenizer from HuggingFace
+            self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
             
-            # Load tag mapping
-            tag_mapping_path = os.path.join(model_dir, "tag_mapping.pkl")
-            with open(tag_mapping_path, "rb") as f:
-                self.tag_mapping = pickle.load(f)
+            # Check if model_name_or_path is a local path or HuggingFace model ID
+            if os.path.isdir(model_name_or_path) and os.path.exists(os.path.join(model_name_or_path, "tag_mapping.pkl")):
+                # Local path
+                tag_mapping_path = os.path.join(model_name_or_path, "tag_mapping.pkl")
+                with open(tag_mapping_path, "rb") as f:
+                    self.tag_mapping = pickle.load(f)
+            else:
+                # It's a HuggingFace model ID - download tag_mapping.pkl
+                try:
+                    # Create URL to download the file
+                    tag_mapping_url = f"https://huggingface.co/{model_name_or_path}/resolve/main/tag_mapping.pkl"
+                    print(f"Downloading tag_mapping.pkl from: {tag_mapping_url}")
+                    
+                    response = requests.get(tag_mapping_url)
+                    response.raise_for_status()  # Raise exception for HTTP errors
+                    
+                    # Load pickle data from response content
+                    self.tag_mapping = pickle.loads(response.content)
+                    print("Successfully loaded tag_mapping from HuggingFace")
+                except Exception as e:
+                    print(f"Error downloading tag_mapping.pkl: {str(e)}")
+                    raise
             
             # Set device
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             print(f"Using device: {self.device}")
             self.model.to(self.device)
             self.model.eval()
+            
         except Exception as e:
             print(f"Error initializing SkillExtractor: {str(e)}")
             raise
-    
+
     def extract_skills(self, resume_text):
         """
         Extract skills from resume text.
@@ -112,7 +134,7 @@ class SkillExtractor:
         except Exception as e:
             print(f"Error extracting skills: {str(e)}")
             return []
-    
+
     def post_process_skills(self, skills):
         """
         Post-process extracted skills to improve quality.
