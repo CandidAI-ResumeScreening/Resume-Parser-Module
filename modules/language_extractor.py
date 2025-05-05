@@ -27,13 +27,17 @@ class LanguageExtractor:
         matches = self.matcher(doc)
         extracted = list(set([doc[start:end].text for _, start, end in matches]))
 
-        # If no matches, fall back to langdetect
-        if not extracted:
-            try:
-                detected_code = detect(text)
-                detected_name = Language.get(detected_code).display_name()
-                return [detected_name]
-            except Exception:
-                return ["English"]  # Default fallback
+        # Try detecting language of the whole resume
+        try:
+            detected_code = detect(text)
+            detected_name = Language.get(detected_code).display_name()
+
+            # If not already in the extracted list, add it
+            if detected_name not in extracted:
+                extracted.append(detected_name)
+        except Exception:
+            # Add default fallback only if no languages were found
+            if not extracted:
+                extracted.append("English")
 
         return extracted
