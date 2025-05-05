@@ -5,7 +5,6 @@ from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
 from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.job_role_classifier import JobRoleClassifier
-from modules.language_extractor import LanguageExtractor
 from app import parse_resume_with_ai
 from pathlib import Path
 import os
@@ -25,11 +24,6 @@ endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
 api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-
-lang_db_path = os.getenv("LANGUAGES_DB_PATH")
-lang_column = os.getenv("LANGUAGES_DB_COLUMN", "Language")  # Optional fallback
-
-extractor_language = LanguageExtractor(lang_db_path, column_name=lang_column)
 
 predictor = ExperienceLevelClassifier(
     model_path=str(Path('models') / 'final_experience_model (1).pkl'),
@@ -132,17 +126,6 @@ def parse_resume():
         if parsed_data.get("Job Role", "").strip().lower() == "n/a":
             predicted_role = job_role.predict_role(cv_text)
             parsed_data["Job Role"] = predicted_role
-        
-        # Extract spoken languages from resume text
-        language_spoken = extractor_language.extract_languages(cv_text)
-        skills = parsed_data.get("Skills", [])
-
-        # Convert both lists to lowercase for comparison
-        skills_lower = [skill.lower() for skill in skills]
-        languages_to_add = [lang for lang in language_spoken if lang.lower() not in skills_lower]
-
-        # Merge languages into the skills list
-        parsed_data["Skills"] += languages_to_add
 
         return jsonify(parsed_data)
 
