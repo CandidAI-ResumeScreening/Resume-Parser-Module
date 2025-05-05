@@ -3,6 +3,7 @@ from utils.cleaner import Cleaner
 from modules.contact_extractor import extract_all_emails_new, extract_first_phone_number
 from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.job_role_classifier import JobRoleClassifier
+# from modules.language_extractor import LanguageExtractor
 import os
 from openai import AzureOpenAI
 from pathlib import Path
@@ -10,19 +11,22 @@ import json
 from typing import Dict, List, Union
 from dotenv import load_dotenv
 
-
+# Load environment variables
 load_dotenv()
 
 
-
-# Use environment variables instead of hardcoding values
+# Securely access environment variables without hardcoded fallbacks
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
 api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 
+# Verify credentials are available
+if not all([endpoint, deployment, subscription_key, api_version]):
+    raise ValueError("Missing Azure OpenAI credentials. Please check your .env file.")
 
-# file_path = "Test_Samples\cv (97).pdf"
+# # File path - update this to your test file
+# file_path = "Test_Samples/ASHRAFs-Resume-hackerresume.pdf"    # Updated path format using forward slashes
 # extractor = ResumeTextExtractor(file_path)
 # cv_text = extractor.extract()
 # cv_text = Cleaner(cv_text).remove_empty_lines(cv_text)
@@ -35,16 +39,14 @@ api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 #     vectorizer_path=str(Path('models') / 'experience_vectorizer (1).pkl'),
 #     label_encoder_path=str(Path('models') / 'experience_label_encoder (1).pkl')
 # )
-# exp_lvl =  predictor.predict_experience(cv_text)
+# exp_lvl = predictor.predict_experience(cv_text)
 
-# # Initialize your job role classifier model
+# # Initialize job role classifier if needed
 # job_role = JobRoleClassifier(
 #     str(Path("models") / "model_exp1.pkl"),
 #     str(Path("models") / "tfidf_exp1.pkl"),
 #     str(Path("models") / "encoder_exp1.pkl")
 # )
-
-
 
 # Initialize Azure OpenAI client
 client = AzureOpenAI(
@@ -52,8 +54,6 @@ client = AzureOpenAI(
     azure_endpoint=endpoint,
     api_key=subscription_key,
 )
-
-
 
 def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
     """Use Azure OpenAI to extract structured resume information"""
@@ -64,7 +64,7 @@ def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
     Required fields:
     - Name (full name)
     - Job Role/Designation (current or most recent)
-    - Social Media (LinkedIn, GitHub, Portfolio, Medium - only return valid URLs or account username if specified)
+    - Social Media (LinkedIn, GitHub, PersonalPortfolio, Medium - only return valid URLs or account username if specified)
     - Education Details (list of dictionaries with: education level, field of study, institution, grade level, date completed)
     - Total Estimated Years of Experience (calculate from dates specified under experience section or return "Not specified")
     - Experience Details (list of dictionaries with each dictionary containing: Industry Name(this is the name of the Company/institution) and Roles)
@@ -142,21 +142,48 @@ def process_resume(resume_text: str) -> Dict:
     # parsed_data["Email"] = emails
     # parsed_data["Phone"] = phone
     # parsed_data["Experience level"] = exp_lvl
-    # # Fallback for missing Job Role
+    
+    # # Fallback for missing Job Role (if you need it)
     # if parsed_data.get("Job Role", "").strip().lower() == "n/a":
     #     predicted_role = job_role.predict_role(text)
     #     parsed_data["Job Role"] = predicted_role
+    
+    
     
     return parsed_data
 
 if __name__ == "__main__":
     # Example usage
-    cv_text = "cv_text"
+    cv_text = """
+    John Smith  
+    Email: john.smith@example.com  
+    Phone: +1234567890  
+
+    Education:  
+    Bachelor of Science in Information Technology  
+    University of Nairobi  
+    Graduation: 2023  
+
+    Experience:  
+    Software Developer Intern - TechZone Ltd  
+    June 2022 – August 2022  
+    - Developed internal tools using Python and Flask  
+    - Assisted in maintaining PostgreSQL databases  
+
+    Skills:  
+    Python, JavaScript, HTML, CSS, Git  
+
+    Languages:  
+    English, French
+    """
+
     result = process_resume(cv_text)
     
     print("Extracted Resume Data:")
     print(json.dumps(result, indent=2))
     
-    # Save to file
-    with open('refined_parsed_resume_for_cv_97.json', 'w') as f:
-        json.dump(result, f, indent=2)
+    # # Save to file
+    # with open('parsed_resume2.json', 'w') as f:
+    #     json.dump(result, f, indent=2)
+    
+    # print("Resume data saved to parsed_resume2.json")
