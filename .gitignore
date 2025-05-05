@@ -1,6 +1,7 @@
 .env
 # Python virtual environment
 venv/
+new_env/
 spacyenv/
 __pycache__/
 *.pyc
