@@ -138,10 +138,21 @@ def parse_resume():
 
         # Fallback for Name
         name = parsed_data.get("Name", "").strip().lower()
+
+        # Fallback for Name
         if not name or name == "n/a":
-            email = emails
-            fallback_name = extract_name_from_email(email)
-            parsed_data["Name"] = fallback_name if fallback_name else "Not specified"
+            try:
+                if emails:
+                    # Handle comma-separated string of emails
+                    first_email = emails.split(',')[0].strip()
+                    fallback_name = extract_name_from_email(first_email)
+                    parsed_data["Name"] = fallback_name if fallback_name else "Not specified"
+                else:
+                    parsed_data["Name"] = "Not specified"
+            except Exception as e:
+                # Add error handling to prevent crashes
+                print(f"Error extracting name from email: {str(e)}")
+                parsed_data["Name"] = "Not specified"
         
         # Extract spoken languages from resume text
         language_spoken = extractor_language.extract_languages(cv_text)

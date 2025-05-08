@@ -1,6 +1,5 @@
 from modules.skill_extractor import SkillExtractor
 from utils.text_extractor import ResumeTextExtractor
-from utils.cleaner import Cleaner
 
 def test_with_huggingface_model(pdf_path):
     # Initialize extractor with HuggingFace model
@@ -26,5 +25,6 @@ def test_with_huggingface_model(pdf_path):
 
 # Example usage
 if __name__ == "__main__":
-    resume_path = "Test_Samples/Yusin-Resume.pdf"  # Change to your resume path
-    test_with_huggingface_model(resume_path)
+    # resume_path = "Test_Samples/Yusin-Resume.pdf"  # Change to your resume path
+    # test_with_huggingface_model(resume_path)
+    print("This is test for resume skills ner extractor")
