@@ -6,6 +6,7 @@ from modules.contact_extractor import extract_all_emails_new, extract_first_phon
 from modules.experience_level_classifier import ExperienceLevelClassifier
 from modules.job_role_classifier import JobRoleClassifier
 from modules.language_extractor import LanguageExtractor
+from modules.name_fallback_extractor import extract_name_from_email
 from app import parse_resume_with_ai
 from pathlib import Path
 import os
@@ -122,16 +123,25 @@ def parse_resume():
         emails = extract_all_emails_new(cv_text)
         phone = extract_first_phone_number(cv_text)
         exp_lvl = predictor.predict_experience(cv_text)
+        preprocessed_resume_text = Cleaner(cv_text).preprocess_resume_text(cv_text)
         
-        parsed_data = parse_resume_with_ai(cv_text)
+        parsed_data = parse_resume_with_ai(preprocessed_resume_text)
         parsed_data["Email"] = emails
         parsed_data["Phone"] = phone
         parsed_data["Experience level"] = exp_lvl
-        parsed_data["rawResumeText"] = cv_text
-        
+        parsed_data["rawResumeText"] = preprocessed_resume_text
+
+        # Fallback for Job Role
         if parsed_data.get("Job Role", "").strip().lower() == "n/a":
             predicted_role = job_role.predict_role(cv_text)
             parsed_data["Job Role"] = predicted_role
+
+        # Fallback for Name
+        name = parsed_data.get("Name", "").strip().lower()
+        if not name or name == "n/a":
+            email = emails
+            fallback_name = extract_name_from_email(email)
+            parsed_data["Name"] = fallback_name if fallback_name else "Not specified"
         
         # Extract spoken languages from resume text
         language_spoken = extractor_language.extract_languages(cv_text)

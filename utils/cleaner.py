@@ -1,3 +1,4 @@
+import re
 
 class Cleaner:
     def __init__(self, text):
@@ -13,8 +14,22 @@ class Cleaner:
         Returns:
             str: Text with empty lines removed
         """
-        # Split the text into lines and filter out empty lines
         lines = [line for line in text.splitlines() if line.strip()]
-        
-        # Join the non-empty lines back together with newlines
         return '\n'.join(lines)
+    
+    def preprocess_resume_text(self, raw_text):
+        """
+        Preprocess resume text by handling newlines and special characters.
+        
+        Args:
+            raw_text (str): Raw resume text
+        
+        Returns:
+            str: Cleaned and preprocessed resume text
+        """
+        text = raw_text.replace('\\n', '\n')
+        text = text.replace('\\t', '\t')
+        text = text.replace('\\r', '\r')
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        text = re.sub(r' +', ' ', text)
+        return text
