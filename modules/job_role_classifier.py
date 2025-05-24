@@ -19,6 +19,7 @@ class JobRoleClassifier:
         prediction_encoded = self.model.predict(transformed)
         prediction = self.label_encoder.inverse_transform(prediction_encoded)[0]
         
-        
+        if prediction == "Java Developer":
+            prediction = "Backend Developer"
         
         return prediction
