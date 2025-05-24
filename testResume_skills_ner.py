@@ -3,8 +3,8 @@ from utils.text_extractor import ResumeTextExtractor
 
 def test_with_huggingface_model(pdf_path):
     # Initialize extractor with HuggingFace model
-    model_name = "habib-ashraf/resume-skills-ner-v2"  # My uploaded HuggingFace model path
-    print(f"Loading model from HuggingFace: {model_name}")
+    model_name = "habib-ashraf/resume-skills-ner-roberta-v3"  # My uploaded HuggingFace model path
+    # print(f"Loading model from HuggingFace: {model_name}")
     extractor = SkillExtractor(model_name)
 
     # Extract resume text
@@ -15,16 +15,17 @@ def test_with_huggingface_model(pdf_path):
     # Extract skills
     skills = extractor.extract_skills(cv_text)
 
-    print("\nExtracted Skills:")
-    # for idx, skill in enumerate(skills, 1):
-    #     print(f"{idx}. {skill}")
-    print("\n")
-    print(skills)
-    print("\n")
-    print(f"\nTotal skills found: {len(skills)}")
+    # print("\nExtracted Skills:")
+    # # for idx, skill in enumerate(skills, 1):
+    # #     print(f"{idx}. {skill}")
+    # print("\n")
+    # print(skills)
+    # print("\n")
+    # print(f"\nTotal skills found: {len(skills)}")
+    return skills
 
 # Example usage
 if __name__ == "__main__":
-    # resume_path = "Test_Samples/Yusin-Resume.pdf"  # Change to your resume path
-    # test_with_huggingface_model(resume_path)
+    resume_path = "Test_Samples/Yusin-Resume.pdf"  # Change to your resume path
+    print(test_with_huggingface_model(resume_path))
     print("This is test for resume skills ner extractor")
