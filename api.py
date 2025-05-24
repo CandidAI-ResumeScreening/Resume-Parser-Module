@@ -170,7 +170,23 @@ def parse_resume():
                 except Exception as e2:
                     print(f"New classifier also failed: {str(e2)}")
                     parsed_data["Job Role"] = "Not specified"
-        
+
+        # # SIMPLIFIED Job Role Classification - Use ONLY the new classifier
+        # job_role_result = parsed_data.get("Job Role", "").strip().lower()
+
+        # if job_role_result == "n/a" or not job_role_result:
+        #     print("🔄 Job role from AI is 'n/a', trying new HuggingFace classifier...")
+            
+        #     try:
+        #         # Use ONLY the new classifier (no old classifier fallback)
+        #         predicted_role_new = job_role_new.predict_role(cv_text)
+        #         parsed_data["Job Role"] = predicted_role_new
+        #         print(f"✅ New classifier result: {predicted_role_new}")
+                    
+        #     except Exception as e:
+        #         print(f"❌ New classifier error: {str(e)}")
+        #         parsed_data["Job Role"] = "Error: Not Specified"
+                
         # Fallback for Social Media links
         social_media = parsed_data.get("Social Media", [])
 
