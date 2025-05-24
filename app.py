@@ -63,7 +63,6 @@ def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
 
     Required fields:
     - Name (full name)
-    - Job Role/Designation (current or most recent)
     - Social Media (LinkedIn, GitHub, Portfolio, Medium - only return valid URLs or account username if specified)
     - Education Details (list of dictionaries with: education level, field of study, institution, grade level, date completed)
     - Total Estimated Years of Experience (calculate from dates specified under experience section or return "Not specified")
@@ -85,7 +84,6 @@ def parse_resume_with_ai(resume_text: str) -> Dict[str, Union[str, List, int]]:
     Required JSON Output Format:
     {{
         "Name": "string",
-        "Job Role": "string",
         "Social Media": ["url1", "url2"],
         "Education Details": [
             {{
