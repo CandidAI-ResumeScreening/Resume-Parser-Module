@@ -1,93 +1,14 @@
 import os
 import re
 from typing import Union
-import platform
 
 import pdfplumber
 from pdfminer.high_level import extract_text
 import mammoth
 from PIL import Image
 import pytesseract
-from docx import Document
+from docx import Document  # <-- Needed for extracting headers
 
-# Configure Tesseract for both Windows 11 and Render
-def configure_tesseract():
-    """Configure Tesseract path based on environment"""
-    
-    # Check if we're on Render (cloud platform)
-    if os.environ.get('RENDER'):
-        print("🌐 Detected Render environment")
-        # Render with apt buildpack paths
-        render_paths = [
-            '/usr/bin/tesseract',
-            '/usr/local/bin/tesseract',
-            '/app/.apt/usr/bin/tesseract',
-            '/opt/render/.apt/usr/bin/tesseract'
-        ]
-        
-        for path in render_paths:
-            if os.path.exists(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                print(f"✅ Tesseract found at: {path}")
-                return True
-        
-        print("⚠️ Tesseract not found in Render paths")
-        return False
-    
-    # Windows 11 Local Development
-    elif platform.system() == 'Windows':
-        print("🖥️ Detected Windows environment")
-        # Common Windows Tesseract installation paths
-        windows_paths = [
-            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
-            r'C:\Users\%USERNAME%\AppData\Local\Programs\Tesseract-OCR\tesseract.exe',
-            r'C:\tesseract\tesseract.exe'
-        ]
-        
-        # Also check PATH
-        try:
-            pytesseract.get_tesseract_version()
-            print("✅ Tesseract found in Windows PATH")
-            return True
-        except:
-            pass
-        
-        # Try specific Windows paths
-        for path in windows_paths:
-            expanded_path = os.path.expandvars(path)
-            if os.path.exists(expanded_path):
-                pytesseract.pytesseract.tesseract_cmd = expanded_path
-                print(f"✅ Tesseract found at: {expanded_path}")
-                return True
-        
-        print("⚠️ Tesseract not found in Windows paths")
-        print("💡 Please install Tesseract OCR from: https://github.com/UB-Mannheim/tesseract/wiki")
-        return False
-    
-    # Linux/Unix (other cloud platforms)
-    else:
-        print("🐧 Detected Linux/Unix environment")
-        unix_paths = [
-            '/usr/bin/tesseract',
-            '/usr/local/bin/tesseract',
-            '/opt/tesseract/bin/tesseract'
-        ]
-        
-        for path in unix_paths:
-            if os.path.exists(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                print(f"✅ Tesseract found at: {path}")
-                return True
-        
-        # Try system PATH
-        try:
-            pytesseract.get_tesseract_version()
-            print("✅ Tesseract found in system PATH")
-            return True
-        except:
-            print("⚠️ Tesseract not found in Unix paths")
-            return False
 
 class ResumeTextExtractor:
     """A class for extracting text from resumes in various formats."""
@@ -95,9 +16,6 @@ class ResumeTextExtractor:
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.supported_formats = ['.pdf', '.docx', '.txt', '.jpg', '.jpeg', '.png']
-        
-        # Configure Tesseract on initialization
-        self.tesseract_available = configure_tesseract()
 
     def extract(self) -> Union[str, None]:
         """Main method to extract text based on file type."""
@@ -179,6 +97,9 @@ class ResumeTextExtractor:
     
     def _extract_from_docx_new(self) -> str:
         """Extract text from .docx file, including headers, footers, and tables if present."""
+        # Default: extract main content using Mammoth
+
+    
         with open(self.file_path, "rb") as docx_file:
             result = mammoth.extract_raw_text(docx_file)
             mammoth_text = result.value.strip()
@@ -224,6 +145,7 @@ class ResumeTextExtractor:
             print(f"⚠️ Warning: Failed to extract headers/footers/tables from {self.file_path} - {str(e)}")
             return mammoth_text
 
+
     def _extract_from_txt(self) -> str:
         """Extract and clean text from .txt file."""
         with open(self.file_path, 'r', encoding='utf-8') as file:
@@ -232,58 +154,15 @@ class ResumeTextExtractor:
         return re.sub(r'\n{3,}', '\n\n', text)
 
     def _extract_from_image(self) -> str:
-        """Extract text from image file with comprehensive error handling."""
-        
-        # Check if Tesseract is available
-        if not self.tesseract_available:
-            error_msg = "Error: Tesseract OCR not available. "
-            if platform.system() == 'Windows':
-                error_msg += "Please install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki"
-            else:
-                error_msg += "Please ensure Tesseract is installed on the system."
-            return error_msg
-        
+        """Extract text from image file."""
         try:
-            # Open and process image
             img = Image.open(self.file_path)
-            
-            # Convert to RGB if necessary (handles PNG with transparency)
-            if img.mode in ('RGBA', 'LA', 'P'):
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
-                    img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                img = background
-            
-            # Enhance image for better OCR
-            img = img.convert('RGB')
-            
-            # OCR Configuration optimized for resumes
-            custom_config = r'--oem 3 --psm 6'
-            
-            # Extract text
-            extracted_text = pytesseract.image_to_string(img, config=custom_config, lang='eng')
-            
-            # Validate extraction
-            if not extracted_text or not extracted_text.strip():
-                return "Warning: No readable text found in image. The image may be too blurry, have poor contrast, or contain no text."
-            
-            # Clean and return text
-            cleaned_text = extracted_text.strip()
-            
-            # Basic validation - check if we got meaningful content
-            if len(cleaned_text) < 10:
-                return f"Warning: Only minimal text extracted from image: '{cleaned_text}'. Image quality may be poor."
-            
-            return cleaned_text
-            
-        except pytesseract.TesseractNotFoundError:
-            return "Error: Tesseract executable not found. Please check Tesseract installation."
-        except pytesseract.TesseractError as e:
-            return f"Error: Tesseract processing failed: {str(e)}"
+            return pytesseract.image_to_string(img)
         except Exception as e:
-            return f"Error extracting text from image {self.file_path}: {str(e)}"
+            return f"Error extracting text from image {self.file_path}: {e}"
         
+    
+
     def clean_cv_text(self, text: str) -> str:
         """
         Given raw extracted CV text, collapse multiple blank lines into one
