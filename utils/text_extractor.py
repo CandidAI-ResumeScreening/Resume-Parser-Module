@@ -161,33 +161,102 @@ class ResumeTextExtractor:
     #     except Exception as e:
     #         return f"Error extracting text from image {self.file_path}: {e}"
     def _extract_from_image(self) -> str:
-        """Extract text from image file with Render compatibility."""
+        """Extract text from image file with comprehensive Tesseract detection."""
         try:
-            # Configure tesseract path for Render
-            if os.environ.get('RENDER'):
-                # Try common Render paths
-                for path in ['/usr/bin/tesseract', '/app/.apt/usr/bin/tesseract']:
+            # Configure tesseract path for different environments
+            import subprocess
+            import platform
+            
+            # Check if we're on Render/cloud platform
+            is_render = os.environ.get('RENDER') or os.environ.get('PORT')
+            
+            if is_render:
+                # Render/cloud environment - try multiple paths
+                possible_paths = [
+                    '/usr/bin/tesseract',
+                    '/usr/local/bin/tesseract', 
+                    '/app/.apt/usr/bin/tesseract',
+                    '/opt/render/.apt/usr/bin/tesseract',
+                    '/home/render/.apt/usr/bin/tesseract'
+                ]
+                
+                tesseract_found = False
+                for path in possible_paths:
                     if os.path.exists(path):
                         pytesseract.pytesseract.tesseract_cmd = path
+                        tesseract_found = True
+                        print(f"✅ Found Tesseract at: {path}")
                         break
+                
+                if not tesseract_found:
+                    # Try to find tesseract using 'which' command
+                    try:
+                        result = subprocess.run(['which', 'tesseract'], 
+                                            capture_output=True, text=True, timeout=5)
+                        if result.returncode == 0 and result.stdout.strip():
+                            tesseract_path = result.stdout.strip()
+                            pytesseract.pytesseract.tesseract_cmd = tesseract_path
+                            tesseract_found = True
+                            print(f"✅ Found Tesseract via 'which': {tesseract_path}")
+                    except:
+                        pass
+                
+                if not tesseract_found:
+                    return "Error: Tesseract OCR not found on server. Please ensure tesseract-ocr is installed via apt.txt file."
             
+            else:
+                # Local development (Windows/Mac/Linux)
+                try:
+                    # Test if tesseract is accessible
+                    pytesseract.get_tesseract_version()
+                    print("✅ Tesseract found in system PATH")
+                except pytesseract.TesseractNotFoundError:
+                    # Windows-specific paths
+                    if platform.system() == 'Windows':
+                        windows_paths = [
+                            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                            r'C:\tesseract\tesseract.exe'
+                        ]
+                        
+                        tesseract_found = False
+                        for path in windows_paths:
+                            if os.path.exists(path):
+                                pytesseract.pytesseract.tesseract_cmd = path
+                                tesseract_found = True
+                                print(f"✅ Found Tesseract at: {path}")
+                                break
+                        
+                        if not tesseract_found:
+                            return "Error: Tesseract not found. Please install from: https://github.com/UB-Mannheim/tesseract/wiki"
+                    else:
+                        return "Error: Tesseract not found in system PATH. Please install tesseract-ocr package."
+            
+            # Now try to extract text
             img = Image.open(self.file_path)
             
-            # Convert to RGB if necessary
+            # Convert to RGB if necessary (handles PNG with transparency)
             if img.mode in ('RGBA', 'LA', 'P'):
                 img = img.convert('RGB')
             
-            # Extract text
-            extracted_text = pytesseract.image_to_string(img)
+            # Use custom OCR config for better results
+            custom_config = r'--oem 3 --psm 6'
             
-            if not extracted_text.strip():
-                return "Warning: No text could be extracted from the image."
+            # Extract text
+            extracted_text = pytesseract.image_to_string(img, config=custom_config)
+            
+            if not extracted_text or not extracted_text.strip():
+                return "Warning: No readable text found in image. The image may be too blurry or contain no text."
             
             return extracted_text.strip()
             
+        except pytesseract.TesseractNotFoundError:
+            return "Error: Tesseract executable not found. Please check Tesseract installation."
+        except pytesseract.TesseractError as e:
+            return f"Error: Tesseract processing failed: {str(e)}"
         except Exception as e:
             return f"Error extracting text from image: {str(e)}"
-        
+            
     
 
     def clean_cv_text(self, text: str) -> str:

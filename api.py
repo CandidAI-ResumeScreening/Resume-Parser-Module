@@ -176,6 +176,47 @@ def parse_resume():
             except:
                 pass
 
+@app.route('/debug-tesseract', methods=['GET'])
+def debug_tesseract():
+    """Debug endpoint to check Tesseract installation"""
+    import subprocess
+    
+    debug_info = {
+        "environment": "render" if os.environ.get('RENDER') else "local",
+        "tesseract_paths_checked": [],
+        "tesseract_found": False,
+        "error": None
+    }
+    
+    # Check common paths
+    possible_paths = [
+        '/usr/bin/tesseract',
+        '/usr/local/bin/tesseract', 
+        '/app/.apt/usr/bin/tesseract',
+        '/opt/render/.apt/usr/bin/tesseract'
+    ]
+    
+    for path in possible_paths:
+        debug_info["tesseract_paths_checked"].append({
+            "path": path,
+            "exists": os.path.exists(path)
+        })
+        if os.path.exists(path):
+            debug_info["tesseract_found"] = True
+    
+    # Try 'which tesseract'
+    try:
+        result = subprocess.run(['which', 'tesseract'], 
+                              capture_output=True, text=True, timeout=5)
+        debug_info["which_tesseract"] = {
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip()
+        }
+    except Exception as e:
+        debug_info["which_error"] = str(e)
+    
+    return jsonify(debug_info)
 
 
 if __name__ == '__main__':
