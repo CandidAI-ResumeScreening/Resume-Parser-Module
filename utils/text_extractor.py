@@ -153,13 +153,40 @@ class ResumeTextExtractor:
         text = "\n".join(lines)
         return re.sub(r'\n{3,}', '\n\n', text)
 
+    # def _extract_from_image(self) -> str:
+    #     """Extract text from image file."""
+    #     try:
+    #         img = Image.open(self.file_path)
+    #         return pytesseract.image_to_string(img)
+    #     except Exception as e:
+    #         return f"Error extracting text from image {self.file_path}: {e}"
     def _extract_from_image(self) -> str:
-        """Extract text from image file."""
+        """Extract text from image file with Render compatibility."""
         try:
+            # Configure tesseract path for Render
+            if os.environ.get('RENDER'):
+                # Try common Render paths
+                for path in ['/usr/bin/tesseract', '/app/.apt/usr/bin/tesseract']:
+                    if os.path.exists(path):
+                        pytesseract.pytesseract.tesseract_cmd = path
+                        break
+            
             img = Image.open(self.file_path)
-            return pytesseract.image_to_string(img)
+            
+            # Convert to RGB if necessary
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
+            
+            # Extract text
+            extracted_text = pytesseract.image_to_string(img)
+            
+            if not extracted_text.strip():
+                return "Warning: No text could be extracted from the image."
+            
+            return extracted_text.strip()
+            
         except Exception as e:
-            return f"Error extracting text from image {self.file_path}: {e}"
+            return f"Error extracting text from image: {str(e)}"
         
     
 
