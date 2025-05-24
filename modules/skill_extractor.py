@@ -2,7 +2,6 @@ import os
 import torch
 import pickle
 import requests
-import re  # Added for email pattern matching
 from io import BytesIO
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
@@ -138,146 +137,37 @@ class SkillExtractor:
 
     def post_process_skills(self, skills):
         """
-        Post-process extracted skills to improve quality, filter out emails, 
-        remove duplicates and repetitions.
+        Post-process extracted skills to improve quality.
         
         Args:
             skills (list): Raw extracted skills
             
         Returns:
-            list: Cleaned skills with emails removed and duplicates cleaned
+            list: Cleaned skills
         """
         if not isinstance(skills, list):
             return []
             
         processed_skills = []
-        emails_filtered = []  # Track what emails were removed
-        duplicates_cleaned = []  # Track what repetitions were cleaned
-        
-        # Email detection patterns
-        email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', re.IGNORECASE)
-        domain_pattern = re.compile(r'\b\w+\.(com|org|net|edu|gov|io|co|uk|de|fr|ca|au)\b', re.IGNORECASE)
-        
-        # Email-related terms and domains
-        email_terms = {'email', 'e-mail', 'mail', 'contact', 'gmail', 'yahoo', 'hotmail', 
-                      'outlook', 'aol', 'icloud', 'protonmail', 'zoho'}
+        unwanted_chars = {'\\', '/', '(', ')', '[', ']', '{', '}', '<', '>', '|'}
         
         for skill in skills:
             if not isinstance(skill, str):
                 continue
+                
+            # Clean and normalize
+            skill = skill.strip().lower()
             
-            # Store original for tracking
-            original_skill = skill
-            
-            # 1. Remove special characters and clean
-            skill = skill.strip()
-            
-            # Remove unwanted characters but keep spaces, hyphens, and dots for compound skills
-            unwanted_chars = {'\\', '/', '(', ')', '[', ']', '{', '}', '<', '>', '|', ',', ';', ':'}
-            for char in unwanted_chars:
-                skill = skill.replace(char, '')
-            
-            # Clean up extra spaces
-            skill = ' '.join(skill.split())
-            
-            # Convert to lowercase for processing
-            skill = skill.lower()
-            
-            # 2. Basic filter criteria
+            # Filter criteria
             if len(skill) < 2:
+                continue
+            if any(c in skill for c in unwanted_chars):
                 continue
             if skill.isdigit():
                 continue
-            
-            # 3. Remove internal word repetitions (e.g., "skills skills skills" -> "skills")
-            words = skill.split()
-            if len(words) > 1:
-                # Check if all words are the same
-                if len(set(words)) == 1:
-                    cleaned_skill = words[0]
-                    if original_skill != cleaned_skill:
-                        duplicates_cleaned.append(f"'{original_skill}' -> '{cleaned_skill}'")
-                    skill = cleaned_skill
-                else:
-                    # Remove consecutive duplicate words (e.g., "node.js node.js express" -> "node.js express")
-                    cleaned_words = []
-                    prev_word = None
-                    for word in words:
-                        if word != prev_word:
-                            cleaned_words.append(word)
-                        prev_word = word
-                    
-                    new_skill = ' '.join(cleaned_words)
-                    if new_skill != skill:
-                        duplicates_cleaned.append(f"'{original_skill}' -> '{new_skill}'")
-                    skill = new_skill
-            
-            # 4. Email filtering logic
-            is_email_related = False
-            
-            # Check for email patterns
-            if email_pattern.search(skill) or domain_pattern.search(skill):
-                is_email_related = True
-            
-            # Check for @ symbol
-            elif '@' in skill:
-                is_email_related = True
-            
-            # Check for email-related terms
-            elif any(term in skill for term in email_terms):
-                is_email_related = True
-            
-            # Check for domain extensions in the skill
-            elif any(ext in skill for ext in ['.com', '.org', '.net', '.edu', '.gov']):
-                is_email_related = True
-            
-            # If it's email-related, filter it out
-            if is_email_related:
-                emails_filtered.append(skill)
-                continue
-            
-            # 5. Additional filters for meaningless skills
-            meaningless_skills = {
-                'and', 'or', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-                'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had',
-                'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
-                'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
-                'education', 'training', 'certification', 'proficiency', 'experience', 'skills',
-                'user', 'users', 'roles', 'role', 'team', 'teams'
-            }
-            
-            if skill in meaningless_skills:
-                continue
-            
-            # 6. Filter very short skills (less than 2 characters after cleaning)
-            if len(skill.replace(' ', '')) < 2:
-                continue
                 
-            # Keep the skill if it passes all checks
             processed_skills.append(skill)
         
-        # 7. Remove duplicates at the skill level while preserving order
+        # Remove duplicates while preserving order
         seen = set()
-        final_skills = []
-        for skill in processed_skills:
-            if skill not in seen:
-                seen.add(skill)
-                final_skills.append(skill)
-        
-        # # Optional: Print what was cleaned (for debugging)
-        # if emails_filtered:
-        #     print(f"🔧 Filtered out {len(emails_filtered)} email-related items")
-        
-        # if duplicates_cleaned:
-        #     print(f"🔧 Cleaned {len(duplicates_cleaned)} repetitive skills")
-        #     # Show first few examples
-        #     for example in duplicates_cleaned[:3]:
-        #         print(f"   {example}")
-        #     if len(duplicates_cleaned) > 3:
-        #         print(f"   ... and {len(duplicates_cleaned) - 3} more")
-        
-        # original_count = len(skills)
-        # final_count = len(final_skills)
-        # print(f"📊 Skills processed: {original_count} -> {final_count} (removed {original_count - final_count})")
-        
-        return final_skills
+        return [x for x in processed_skills if not (x in seen or seen.add(x))]
