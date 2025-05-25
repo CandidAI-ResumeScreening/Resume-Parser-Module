@@ -3,3 +3,6 @@
 torchvenv/
 testenv/
 venv/
+
+# Model cache directory (large files)
+cache/

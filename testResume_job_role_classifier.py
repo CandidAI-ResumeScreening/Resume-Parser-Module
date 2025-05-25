@@ -4,7 +4,7 @@ from utils.cleaner import Cleaner
 
 print("Initializing Job Role Classifier from HuggingFace...")
 print("="*60)
-job_role = JobRoleClassifierNew("habib-ashraf/resume-job-classifier")
+job_role = JobRoleClassifierNew("habib-ashraf/resume-job-classifier", enable_cache=True)
 print("="*60)
 print("✅ Job Role Classifier loaded successfully!")
 print()
