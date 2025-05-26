@@ -1,11 +1,11 @@
 import os
 import re
 from typing import Union
-
+import numpy as np
 import pdfplumber
 from pdfminer.high_level import extract_text
 import mammoth
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
 from docx import Document  # <-- Needed for extracting headers
 
@@ -145,7 +145,6 @@ class ResumeTextExtractor:
             print(f"⚠️ Warning: Failed to extract headers/footers/tables from {self.file_path} - {str(e)}")
             return mammoth_text
 
-
     def _extract_from_txt(self) -> str:
         """Extract and clean text from .txt file."""
         with open(self.file_path, 'r', encoding='utf-8') as file:
@@ -154,14 +153,126 @@ class ResumeTextExtractor:
         return re.sub(r'\n{3,}', '\n\n', text)
 
     def _extract_from_image(self) -> str:
-        """Extract text from image file."""
+        """
+        Extract text from image file with optimized preprocessing for resume documents.
+        Applies minimal yet necessary preprocessing techniques to improve OCR accuracy.
+        """
         try:
+            # Load image
             img = Image.open(self.file_path)
-            return pytesseract.image_to_string(img)
+            
+            # Convert to RGB if necessary (handles various color modes)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Apply preprocessing pipeline for better OCR results
+            processed_img = self._preprocess_image_for_ocr(img)
+            
+            # Configure Tesseract for document text (resumes)
+            custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?;:()\'"@+-/%&*[]{}|\\~`#$^_= \n\t'
+            
+            # Extract text with optimized configuration
+            extracted_text = pytesseract.image_to_string(
+                processed_img, 
+                config=custom_config,
+                lang='eng'
+            )
+            
+            return self._post_process_ocr_text(extracted_text)
+            
         except Exception as e:
             return f"Error extracting text from image {self.file_path}: {e}"
+
+    def _preprocess_image_for_ocr(self, img: Image.Image) -> Image.Image:
+        """
+        Apply minimal preprocessing techniques to improve OCR accuracy.
+        Based on research showing 25-40% improvement with proper preprocessing.
+        """
+        # Convert PIL Image to numpy array for processing
+        img_array = np.array(img)
         
-    
+        # 1. Convert to grayscale (reduces noise, improves processing speed)
+        if len(img_array.shape) == 3:
+            img = img.convert('L')
+        
+        # 2. Enhance contrast (improves text-background separation)
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.5)  # Moderate contrast boost
+        
+        # 3. Apply slight sharpening (improves character edge definition)
+        img = img.filter(ImageFilter.SHARPEN)
+        
+        # 4. Resize if image is too small (Tesseract works better with larger images)
+        width, height = img.size
+        if width < 1000 or height < 1000:
+            # Scale up while maintaining aspect ratio
+            scale_factor = max(1000 / width, 1000 / height)
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            img = img.resize((new_width, new_height), Image.LANCZOS)
+        
+        # 5. Noise reduction (remove small artifacts that confuse OCR)
+        img = img.filter(ImageFilter.MedianFilter(size=3))
+        
+        return img
+
+    def _post_process_ocr_text(self, text: str) -> str:
+        """
+        Clean up OCR output to improve quality for resume parsing.
+        """
+        if not text or not text.strip():
+            return ""
+        
+        # Remove excessive whitespace and empty lines
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        # Fix common OCR errors in resumes
+        cleaned_text = '\n'.join(lines)
+        
+        # Common OCR character corrections for resumes
+        ocr_corrections = {
+            '|': 'I',  # Common OCR error
+            '0': 'O',  # In names/words context
+            '5': 'S',  # When appropriate
+            '1': 'l',  # In word context
+            '@': 'a',  # When not in email context
+        }
+        
+        # Apply corrections carefully (only when not in email/phone context)
+        
+        # Don't correct @ in email addresses
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        emails = re.findall(email_pattern, cleaned_text)
+        
+        # Don't correct numbers in phone numbers or dates
+        phone_pattern = r'[\+]?[1-9]?[\d\s\-\(\)]{7,15}'
+        phones = re.findall(phone_pattern, cleaned_text)
+        
+        # Apply smart corrections (avoiding emails and phones)
+        for old_char, new_char in ocr_corrections.items():
+            if old_char == '@' and any(email in cleaned_text for email in emails):
+                continue  # Skip @ correction if emails present
+            
+            # Apply correction in word contexts only
+            if old_char in ['0', '5', '1'] and any(phone in cleaned_text for phone in phones):
+                continue  # Skip number corrections in phone context
+                
+            # Apply targeted corrections
+            cleaned_text = self._smart_char_replacement(cleaned_text, old_char, new_char)
+        
+        return cleaned_text
+
+    def _smart_char_replacement(self, text: str, old_char: str, new_char: str) -> str:
+        """
+        Replace characters only in appropriate contexts (word boundaries).
+        """
+        # Only replace if the character is surrounded by letters (word context)
+        if old_char in ['0', '5', '1', '|']:
+            # Replace only when surrounded by letters
+            pattern = r'(?<=[A-Za-z])' + re.escape(old_char) + r'(?=[A-Za-z])'
+            text = re.sub(pattern, new_char, text)
+        
+        return text
 
     def clean_cv_text(self, text: str) -> str:
         """

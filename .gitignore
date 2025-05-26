@@ -2,3 +2,4 @@
 # Ignore custom virtual environment
 torchvenv/
 testenv/
+cache/

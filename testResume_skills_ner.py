@@ -3,7 +3,7 @@ from utils.text_extractor import ResumeTextExtractor
 
 def test_with_huggingface_model(pdf_path):
     # Initialize extractor with HuggingFace model
-    model_name = "habib-ashraf/resume-skills-ner-roberta-v3"  # My uploaded HuggingFace model path
+    model_name = "habib-ashraf/resume-skills-ner-v3-updated"  # My uploaded HuggingFace model path
     # print(f"Loading model from HuggingFace: {model_name}")
     extractor = SkillExtractor(model_name)
 
