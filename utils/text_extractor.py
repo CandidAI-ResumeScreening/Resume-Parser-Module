@@ -7,7 +7,7 @@ from pdfminer.high_level import extract_text
 import mammoth
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
-from docx import Document  # <-- Needed for extracting headers
+from docx import Document  
 
 
 class ResumeTextExtractor:
