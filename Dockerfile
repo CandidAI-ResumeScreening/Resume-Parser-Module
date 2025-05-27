@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install system dependencies including Tesseract
+# Install system dependencies including Tesseract and Leptonica
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-eng \
